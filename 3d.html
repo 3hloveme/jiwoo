@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>웹 명함</title>
+  <style>
+    /* ==========================================================================
+       1. 디자인 토큰 및 테마 변수 (밝은 화면 / 어두운 화면)
+       ========================================================================== */
+    :root {
+      --primary: #1F3A5F;
+      --primary-light: #2d5285;
+      --primary-soft: rgba(31, 58, 95, 0.08);
+      --bg-desk: #f7f8fa;
+      --bg-card: #ffffff;
+      --bg-surface: #ffffff;
+      --text-main: #111827;
+      --text-sub: #4b5563;
+      --text-muted: #6b7280;
+      --border-thin: #e2e8f0;
+      --border-strong: rgba(31, 58, 95, 0.22);
+      --shadow-card: 0 18px 40px -12px rgba(15, 23, 42, 0.10), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+      --shadow-section: 0 4px 20px rgba(15, 23, 42, 0.04);
+      --glare-color: rgba(255, 255, 255, 0.55);
+      --radius-card: 20px;
+      --radius-box: 16px;
+      --transition-speed: 0.3s;
+    }
+
+    [data-theme="dark"] {
+      --primary: #5b89c7;
+      --primary-light: #79a3db;
+      --primary-soft: rgba(91, 137, 199, 0.14);
+      --bg-desk: #0f141c;
+      --bg-card: #18202c;
+      --bg-surface: #18202c;
+      --text-main: #f3f4f6;
+      --text-sub: #cbd5e1;
+      --text-muted: #94a3b8;
+      --border-thin: #293548;
+      --border-strong: rgba(91, 137, 199, 0.35);
+      --shadow-card: 0 22px 48px -12px rgba(0, 0, 0, 0.55), 0 4px 14px -2px rgba(0, 0, 0, 0.35);
+      --shadow-section: 0 6px 24px rgba(0, 0, 0, 0.25);
+      --glare-color: rgba(255, 255, 255, 0.14);
+    }
+
+    /* ==========================================================================
+       2. 기본 리셋 및 모바일 우선(390px 기준) 레이아웃
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", "맑은 고딕", sans-serif;
+      background-color: var(--bg-desk);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+      width: 100%;
+      overflow-x: hidden;
+      transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 전체 컨테이너: 모바일 390px에서 좌우 여백 확보 및 가로 넘침 방지 */
+    .page-wrapper {
+      width: 100%;
+      max-width: 640px;
+      padding: 20px 18px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* ==========================================================================
+       3. 상단 헤더 (밝은 화면 / 어두운 화면 전환 단추)
+       ========================================================================== */
+    .top-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-thin);
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+    }
+
+    .theme-toggle-btn:active {
+      transform: scale(0.97);
+    }
+
+    .theme-toggle-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* ==========================================================================
+       4. 3D 명함 영역 (책상 위 실물 명함 느낌 + 기울기 + 광택 반사 + 3D 플립)
+       ========================================================================== */
+    .card-stage {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .card-scene {
+      width: 100%;
+      max-width: 460px;
+      perspective: 1200px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .card-scene:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 6px;
+      border-radius: var(--radius-card);
+    }
+
+    /* 마우스/자이로 기울기를 담당하는 래퍼 */
+    .card-tilt-wrapper {
+      width: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.18s ease-out;
+      will-change: transform;
+    }
+
+    /* 180도 뒤집힘을 담당하는 이너 컨테이너 */
+    .card-flipper {
+      position: relative;
+      width: 100%;
+      /* 모바일(390px)에서도 뒷면 내용(강점 3개 + 해 본 일 3개 + 버튼)이 잘리지 않는 넉넉한 높이 */
+      min-height: 410px;
+      transform-style: preserve-3d;
+      transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .card-scene.is-flipped .card-flipper {
+      transform: rotateY(180deg);
+    }
+
+    /* 앞면 & 뒷면 공통 스타일 */
+    .card-face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-thin);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+    }
+
+    /* 실물 명함 상단 포인트 바 */
+    .card-face::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #1F3A5F 0%, #3a649e 100%);
+      z-index: 2;
+    }
+
+    /* 빛 반사(Glare) 레이어 */
+    .card-glare {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      opacity: 0;
+      background: radial-gradient(
+        circle at 50% 50%,
+        var(--glare-color) 0%,
+        transparent 65%
+      );
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+
+    /* 앞면 디자인 */
+    .card-front {
+      align-items: center;
+      text-align: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .avatar-box {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      border: 1px solid var(--border-strong);
+      padding: 4px;
+      background-color: var(--bg-card);
+      box-shadow: 0 6px 16px rgba(31, 58, 95, 0.12);
+      flex-shrink: 0;
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .avatar-fallback {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1F3A5F 0%, #3b69a8 100%);
+      color: #ffffff;
+      font-size: 2.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: -0.02em;
+    }
+
+    .front-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--primary);
+      background-color: var(--primary-soft);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      letter-spacing: 0.02em;
+    }
+
+    .profile-name {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      min-height: 2.4rem;
+    }
+
+    .profile-tagline {
+      font-size: 0.98rem;
+      color: var(--text-sub);
+      word-break: keep-all;
+      min-height: 1.6rem;
+      max-width: 300px;
+    }
+
+    /* 타이핑 커서 효과 */
+    .typing-cursor::after {
+      content: "|";
+      margin-left: 2px;
+      color: var(--primary);
+      animation: blinkCursor 0.8s infinite;
+    }
+
+    @keyframes blinkCursor {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    /* 뒷면 디자인 */
+    .card-back {
+      transform: rotateY(180deg);
+      text-align: left;
+      gap: 14px;
+      padding: 24px 20px 20px;
+    }
+
+    .back-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .back-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tools-inline {
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .strength-list {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .strength-chip {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background-color: var(--primary-soft);
+      border: 1px solid var(--border-thin);
+      padding: 4px 10px;
+      border-radius: 8px;
+      line-height: 1.35;
+    }
+
+    .back-works-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .back-work-item {
+      padding: 7px 10px;
+      border: 1px solid var(--border-thin);
+      border-radius: 10px;
+      background-color: var(--bg-desk);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .back-work-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .back-work-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .back-work-year {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .back-work-desc {
+      font-size: 0.77rem;
+      color: var(--text-sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .portfolio-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 11px 16px;
+      margin-top: 2px;
+      background-color: #1F3A5F;
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      box-shadow: 0 4px 12px rgba(31, 58, 95, 0.22);
+      transition: background-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .portfolio-btn:hover {
+      background-color: #294c7a;
+    }
+
+    .portfolio-btn:active {
+      transform: scale(0.98);
+    }
+
+    .portfolio-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* 카드 아래 안내 문구 */
+    .flip-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 4px 12px;
+      border-radius: 999px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-thin);
+    }
+
+    /* ==========================================================================
+       5. 연도순 세로 타임라인 영역
+       ========================================================================== */
+    .timeline-section {
+      width: 100%;
+      max-width: 460px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-thin);
+      border-radius: var(--radius-box);
+      padding: 24px 22px;
+      box-shadow: var(--shadow-section);
+      transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-thin);
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      border-radius: 2px;
+      background-color: #1F3A5F;
+    }
+
+    .tools-badge-row {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .timeline-list {
+      position: relative;
+      list-style: none;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* 세로 연결선 */
+    .timeline-list::before {
+      content: "";
+      position: absolute;
+      top: 6px;
+      bottom: 6px;
+      left: 5px;
+      width: 1.5px;
+      background-color: var(--border-strong);
+    }
+
+    .timeline-item {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    /* 타임라인 점(노드) */
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -19px;
+      top: 6px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: var(--bg-surface);
+      border: 2px solid #1F3A5F;
+    }
+
+    [data-theme="dark"] .timeline-item::before {
+      border-color: var(--primary);
+    }
+
+    .timeline-year {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .timeline-title {
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text-main);
+      word-break: keep-all;
+    }
+
+    .timeline-desc {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      word-break: keep-all;
+    }
+
+    /* ==========================================================================
+       6. 바닥글 (AI 안내 문구)
+       ========================================================================== */
+    .page-footer {
+      width: 100%;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .ai-notice {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       7. 데스크톱 PC 화면 대응 (640px 이상)
+       ========================================================================== */
+    @media (min-width: 640px) {
+      .page-wrapper {
+        padding: 36px 24px 56px;
+        gap: 34px;
+      }
+
+      .card-scene,
+      .timeline-section {
+        max-width: 500px;
+      }
+
+      .card-flipper {
+        min-height: 390px;
+      }
+
+      .card-face {
+        padding: 32px 28px;
+      }
+
+      .profile-name {
+        font-size: 1.9rem;
+      }
+    }
+
+    /* ==========================================================================
+       8. 움직임 줄이기 설정 (prefers-reduced-motion) 대응
+       ========================================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .card-tilt-wrapper {
+        transform: none !important;
+      }
+
+      .card-glare {
+        display: none !important;
+      }
+
+      .typing-cursor::after {
+        display: none !important;
+      }
+    }
+
+    /* ==========================================================================
+       9. A4 한 장 인쇄 최적화 (@media print)
+       ========================================================================== */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 14mm 16mm;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #111827 !important;
+        min-height: auto;
+      }
+
+      /* 화면 전환 버튼, 뒤집기 안내, 광택 효과 숨김 */
+      .top-bar,
+      .flip-hint,
+      .card-glare {
+        display: none !important;
+      }
+
+      .page-wrapper {
+        max-width: 100%;
+        padding: 0;
+        gap: 16px;
+      }
+
+      /* 3D 명함 앞면과 뒷면을 A4 상단에 나란히 배치하여 한눈에 요약 */
+      .card-stage {
+        width: 100%;
+      }
+
+      .card-scene {
+        max-width: 100%;
+        perspective: none;
+      }
+
+      .card-tilt-wrapper {
+        transform: none !important;
+      }
+
+      .card-flipper {
+        min-height: auto;
+        transform: none !important;
+        display: grid;
+        grid-template-columns: 1fr 1.25fr;
+        gap: 14px;
+      }
+
+      .card-face {
+        position: relative !important;
+        inset: auto !important;
+        height: auto !important;
+        transform: none !important;
+        backface-visibility: visible !important;
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        background: #ffffff !important;
+        padding: 18px 16px !important;
+        page-break-inside: avoid;
+      }
+
+      .portfolio-btn {
+        background: #ffffff !important;
+        color: #1F3A5F !important;
+        border: 1px solid #1F3A5F !important;
+        box-shadow: none !important;
+        padding: 7px 10px;
+        font-size: 0.78rem;
+      }
+
+      /* 인쇄 시 포트폴리오 주소 텍스트 함께 표시 */
+      .portfolio-btn::after {
+        content: " (" attr(href) ")";
+        font-size: 0.68rem;
+        font-weight: 400;
+        word-break: break-all;
+      }
+
+      .timeline-section {
+        max-width: 100%;
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        background: #ffffff !important;
+        padding: 18px 20px;
+        page-break-inside: avoid;
+      }
+
+      .page-footer {
+        margin-top: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- 오른쪽 위: 밝은 화면 · 어두운 화면 바꾸기 단추 -->
+    <header class="top-bar">
+      <button
+        type="button"
+        id="themeToggleBtn"
+        class="theme-toggle-btn"
+        aria-label="화면 테마 전환"
+      >
+        <span id="themeIcon" aria-hidden="true">🌙</span>
+        <span id="themeLabel">어두운 화면</span>
+      </button>
+    </header>
+
+    <!-- 중앙: 3D 뒤집히는 실물 느낌 웹 명함 -->
+    <main class="card-stage">
+      <div
+        id="cardScene"
+        class="card-scene"
+        role="button"
+        tabindex="0"
+        aria-pressed="false"
+        aria-label="명함 카드. 누르면 앞면과 뒷면이 뒤집힙니다."
+      >
+        <div id="cardTiltWrapper" class="card-tilt-wrapper">
+          <div class="card-flipper">
+            <!-- 명함 앞면: 아바타 · 이름 · 지원 직무 · 한 줄 소개 -->
+            <section class="card-face card-front" aria-label="명함 앞면">
+              <div class="card-glare" aria-hidden="true"></div>
+              <div id="avatarBox" class="avatar-box"></div>
+              <div class="front-info">
+                <span id="frontRole" class="role-badge"></span>
+                <h1 id="frontName" class="profile-name"></h1>
+                <p id="frontTagline" class="profile-tagline"></p>
+              </div>
+            </section>
+
+            <!-- 명함 뒷면: 강점 3개 · 해 본 일 3개 · [포트폴리오 보기] 단추 -->
+            <section class="card-face card-back" aria-label="명함 뒷면">
+              <div class="card-glare" aria-hidden="true"></div>
+
+              <div class="back-section">
+                <div class="back-label">
+                  <span>강점</span>
+                  <span id="backTools" class="tools-inline"></span>
+                </div>
+                <ul id="backStrengths" class="strength-list"></ul>
+              </div>
+
+              <div class="back-section">
+                <div class="back-label">
+                  <span>해 본 일</span>
+                </div>
+                <ul id="backWorks" class="back-works-list"></ul>
+              </div>
+
+              <a
+                id="portfolioLinkBtn"
+                class="portfolio-btn"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                포트폴리오 보기 ↗
+              </a>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <!-- 카드 아래 안내 문구 -->
+      <p class="flip-hint" aria-hidden="true">
+        <span>↻</span>
+        <span>눌러서 뒤집기</span>
+      </p>
+
+      <!-- 해 본 일 연도순 세로 타임라인 칸 -->
+      <section class="timeline-section" aria-labelledby="timelineHeading">
+        <div class="section-header">
+          <h2 id="timelineHeading" class="section-title">해 본 일 타임라인</h2>
+          <span id="timelineTools" class="tools-badge-row"></span>
+        </div>
+        <ol id="timelineList" class="timeline-list"></ol>
+      </section>
+    </main>
+
+    <!-- 맨 아래 작은 AI 안내 문구 -->
+    <footer class="page-footer">
+      <p class="ai-notice">이 페이지의 그림과 코드는 AI의 도움을 받아 만들었습니다</p>
+    </footer>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       [내 정보] 나중에 아래 PROFILE 객체의 글자만 고치면 화면 전체가 바뀝니다.
+       ========================================================================== */
+    const PROFILE = {
+      name: "허지우",
+      role: "개발",
+      tagline: "게임 개발을 주로 작업합니다.",
+      avatar: "avatar.png",
+      strengths: [
+        "기획 의도를 구현하는 개발력",
+        "그래픽 툴을 활용한 시각적 이해도",
+        "꼼꼼한 디버깅과 문제 해결"
+      ],
+      tools: ["포토샵", "일러스트"],
+      works: [
+        {
+          title: "해 본 일 제목 1",
+          description: "한 줄 설명을 입력해 주세요.",
+          year: "2024"
+        },
+        {
+          title: "해 본 일 제목 2",
+          description: "한 줄 설명을 입력해 주세요.",
+          year: "2025"
+        },
+        {
+          title: "해 본 일 제목 3",
+          description: "한 줄 설명을 입력해 주세요.",
+          year: "2026"
+        }
+      ],
+      portfolioUrl: "https://sites.google.com/d/1y8ItFOl2xqbkl29g_j0bImQF_2H4c29n/p/1PBskhHOVqwQ4Qu-JXO-YZorGMVDSgLCn/edit"
+    };
+
+    /* ==========================================================================
+       초기화 및 화면 렌더링 로직 (PROFILE 데이터 기반)
+       ========================================================================== */
+    document.addEventListener("DOMContentLoaded", () => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // 1. 문서 제목 설정
+      document.title = `${PROFILE.name} | ${PROFILE.role} 웹 명함`;
+
+      // 2. 아바타 렌더링 (avatar.png 우선 표시, 실패 시 이름 첫 글자 그라데이션 원)
+      const avatarBox = document.getElementById("avatarBox");
+      const firstChar = PROFILE.name ? PROFILE.name.trim().charAt(0) : "?";
+
+      function renderAvatarFallback() {
+        avatarBox.innerHTML = "";
+        const fallback = document.createElement("div");
+        fallback.className = "avatar-fallback";
+        fallback.setAttribute("role", "img");
+        fallback.setAttribute("aria-label", `${PROFILE.name} 아바타`);
+        fallback.textContent = firstChar;
+        avatarBox.appendChild(fallback);
+      }
+
+      if (PROFILE.avatar) {
+        const img = document.createElement("img");
+        img.className = "avatar-img";
+        img.src = PROFILE.avatar;
+        img.alt = `${PROFILE.name} 프로필 사진`;
+        img.onerror = renderAvatarFallback;
+        avatarBox.appendChild(img);
+      } else {
+        renderAvatarFallback();
+      }
+
+      // 3. 앞면 텍스트 설정 및 한 글자씩 타이핑 효과
+      const frontRoleEl = document.getElementById("frontRole");
+      const frontNameEl = document.getElementById("frontName");
+      const frontTaglineEl = document.getElementById("frontTagline");
+
+      frontRoleEl.textContent = PROFILE.role;
+
+      function typeText(element, text, speed, onComplete) {
+        if (prefersReducedMotion) {
+          element.textContent = text;
+          if (onComplete) onComplete();
+          return;
+        }
+        element.textContent = "";
+        element.classList.add("typing-cursor");
+        let index = 0;
+
+        const timer = setInterval(() => {
+          element.textContent += text.charAt(index);
+          index += 1;
+          if (index >= text.length) {
+            clearInterval(timer);
+            element.classList.remove("typing-cursor");
+            if (onComplete) onComplete();
+          }
+        }, speed);
+      }
+
+      typeText(frontNameEl, PROFILE.name, 110, () => {
+        typeText(frontTaglineEl, PROFILE.tagline, 55);
+      });
+
+      // 4. 뒷면: 강점 3개 & 쓰는 도구
+      const backToolsEl = document.getElementById("backTools");
+      const timelineToolsEl = document.getElementById("timelineTools");
+      const toolsText = PROFILE.tools && PROFILE.tools.length > 0
+        ? `도구 · ${PROFILE.tools.join(", ")}`
+        : "";
+
+      backToolsEl.textContent = toolsText;
+      timelineToolsEl.textContent = toolsText;
+
+      const backStrengthsEl = document.getElementById("backStrengths");
+      PROFILE.strengths.slice(0, 3).forEach((strength) => {
+        const li = document.createElement("li");
+        li.className = "strength-chip";
+        li.textContent = strength;
+        backStrengthsEl.appendChild(li);
+      });
+
+      // 5. 뒷면: 해 본 일 3개
+      const backWorksEl = document.getElementById("backWorks");
+      PROFILE.works.slice(0, 3).forEach((work) => {
+        const li = document.createElement("li");
+        li.className = "back-work-item";
+
+        const head = document.createElement("div");
+        head.className = "back-work-head";
+
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "back-work-title";
+        titleSpan.textContent = work.title;
+
+        const yearSpan = document.createElement("span");
+        yearSpan.className = "back-work-year";
+        yearSpan.textContent = work.year;
+
+        head.appendChild(titleSpan);
+        head.appendChild(yearSpan);
+
+        const descP = document.createElement("p");
+        descP.className = "back-work-desc";
+        descP.textContent = work.description;
+
+        li.appendChild(head);
+        li.appendChild(descP);
+        backWorksEl.appendChild(li);
+      });
+
+      // 6. 포트폴리오 단추 (새 탭 열기 및 카드 뒤집힘 이벤트 전파 방지)
+      const portfolioLinkBtn = document.getElementById("portfolioLinkBtn");
+      portfolioLinkBtn.href = PROFILE.portfolioUrl;
+      portfolioLinkBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+
+      // 7. 연도순 세로 타임라인 렌더링 (연도 오름차순 정렬)
+      const timelineListEl = document.getElementById("timelineList");
+      const sortedWorks = [...PROFILE.works].sort((a, b) => {
+        const yearA = parseInt(String(a.year).replace(/[^0-9]/g, ""), 10) || 0;
+        const yearB = parseInt(String(b.year).replace(/[^0-9]/g, ""), 10) || 0;
+        return yearA - yearB;
+      });
+
+      sortedWorks.forEach((work) => {
+        const li = document.createElement("li");
+        li.className = "timeline-item";
+
+        const yearEl = document.createElement("span");
+        yearEl.className = "timeline-year";
+        yearEl.textContent = work.year;
+
+        const titleEl = document.createElement("h3");
+        titleEl.className = "timeline-title";
+        titleEl.textContent = work.title;
+
+        const descEl = document.createElement("p");
+        descEl.className = "timeline-desc";
+        descEl.textContent = work.description;
+
+        li.appendChild(yearEl);
+        li.appendChild(titleEl);
+        li.appendChild(descEl);
+        timelineListEl.appendChild(li);
+      });
+
+      // 8. 3D 명함 클릭/키보드 뒤집기 상호작용
+      const cardScene = document.getElementById("cardScene");
+      const cardTiltWrapper = document.getElementById("cardTiltWrapper");
+      const glares = document.querySelectorAll(".card-glare");
+      let isFlipped = false;
+
+      function toggleFlip() {
+        isFlipped = !isFlipped;
+        cardScene.classList.toggle("is-flipped", isFlipped);
+        cardScene.setAttribute("aria-pressed", String(isFlipped));
+      }
+
+      cardScene.addEventListener("click", toggleFlip);
+      cardScene.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggleFlip();
+        }
+      });
+
+      // 9. 마우스 및 모바일 기울기(자이로) 따라 카드 기울이기 + 빛 반사 효과
+      function applyTiltAndGlare(normX, normY) {
+        if (prefersReducedMotion) return;
+
+        // normX, normY 범위: -1 ~ 1
+        const maxRotate = 8; // 최대 기울기 각도(deg)
+        const rotateY = normX * maxRotate;
+        const rotateX = -normY * maxRotate;
+
+        cardTiltWrapper.style.transform = `rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
+
+        // 빛 반사 위치 계산 (0% ~ 100%)
+        const glareX = ((normX + 1) / 2) * 100;
+        const glareY = ((normY + 1) / 2) * 100;
+
+        glares.forEach((glare) => {
+          glare.style.opacity = "1";
+          glare.style.background = `radial-gradient(circle at ${glareX.toFixed(1)}% ${glareY.toFixed(1)}%, var(--glare-color) 0%, transparent 65%)`;
+        });
+      }
+
+      function resetTiltAndGlare() {
+        cardTiltWrapper.style.transform = "rotateX(0deg) rotateY(0deg)";
+        glares.forEach((glare) => {
+          glare.style.opacity = "0";
+        });
+      }
+
+      // PC 마우스 움직임 감지
+      cardScene.addEventListener("mousemove", (event) => {
+        if (prefersReducedMotion) return;
+        const rect = cardScene.getBoundingClientRect();
+        const relX = (event.clientX - rect.left) / rect.width;
+        const relY = (event.clientY - rect.top) / rect.height;
+        const normX = Math.max(-1, Math.min(1, relX * 2 - 1));
+        const normY = Math.max(-1, Math.min(1, relY * 2 - 1));
+        applyTiltAndGlare(normX, normY);
+      });
+
+      cardScene.addEventListener("mouseleave", resetTiltAndGlare);
+
+      // 모바일 기기 기울기(DeviceOrientation) 감지
+      if (!prefersReducedMotion && window.DeviceOrientationEvent) {
+        window.addEventListener("deviceorientation", (event) => {
+          if (event.gamma === null || event.beta === null) return;
+          // gamma: 좌우 기울기 (-90 ~ 90), beta: 앞뒤 기울기 (-180 ~ 180, 손에 쥔 기본 각도 약 45도 보정)
+          const normX = Math.max(-1, Math.min(1, event.gamma / 25));
+          const normY = Math.max(-1, Math.min(1, (event.beta - 45) / 25));
+          applyTiltAndGlare(normX, normY);
+        }, { passive: true });
+      }
+
+      // 10. 밝은 화면 / 어두운 화면 전환 단추
+      const themeToggleBtn = document.getElementById("themeToggleBtn");
+      const themeIcon = document.getElementById("themeIcon");
+      const themeLabel = document.getElementById("themeLabel");
+      const htmlEl = document.documentElement;
+
+      function updateThemeUI(theme) {
+        htmlEl.setAttribute("data-theme", theme);
+        if (theme === "dark") {
+          themeIcon.textContent = "☀️";
+          themeLabel.textContent = "밝은 화면";
+        } else {
+          themeIcon.textContent = "🌙";
+          themeLabel.textContent = "어두운 화면";
+        }
+      }
+
+      themeToggleBtn.addEventListener("click", () => {
+        const currentTheme = htmlEl.getAttribute("data-theme");
+        const nextTheme = currentTheme === "dark" ? "light" : "dark";
+        updateThemeUI(nextTheme);
+      });
+    });
+  </script>
+</body>
+</html>
